@@ -7,7 +7,9 @@ import { colors, fontStyles } from '../../../styles/common';
 import { strings } from '../../../../locales/i18n';
 import Networks, { getAllNetworks, isSafeChainId } from '../../../util/networks';
 import { connect } from 'react-redux';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import AnalyticsV2 from '../../../util/analyticsV2';
+import StyledButton from '../StyledButton';
 import { MAINNET, RPC } from '../../../constants/network';
 
 const styles = StyleSheet.create({
@@ -19,6 +21,14 @@ const styles = StyleSheet.create({
 	titleWrapper: {
 		borderBottomWidth: StyleSheet.hairlineWidth,
 		borderColor: colors.grey100,
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+	closeIcon: {
+		position: 'absolute',
+		right: 0,
+		padding: 15,
 	},
 	title: {
 		textAlign: 'center',
@@ -68,22 +78,15 @@ const styles = StyleSheet.create({
 	footer: {
 		borderTopWidth: StyleSheet.hairlineWidth,
 		borderColor: colors.grey100,
-		height: 60,
-		justifyContent: 'center',
+		marginVertical: 10,
 		flexDirection: 'row',
-		alignItems: 'center',
 	},
 	footerButton: {
 		flex: 1,
 		alignContent: 'center',
 		alignItems: 'center',
 		justifyContent: 'center',
-		height: 60,
-	},
-	closeButton: {
-		fontSize: 16,
-		color: colors.blue,
-		...fontStyles.normal,
+		marginHorizontal: 20,
 	},
 	networkIcon: {
 		width: 15,
@@ -136,6 +139,10 @@ export class NetworkList extends PureComponent {
 		 * Show invalid custom network alert for networks without a chain ID
 		 */
 		showInvalidCustomNetworkAlert: PropTypes.func,
+		/**
+		 * react-navigation object used for switching between screens
+		 */
+		navigation: PropTypes.object,
 	};
 
 	getOtherNetworks = () => getAllNetworks().slice(1);
@@ -260,12 +267,18 @@ export class NetworkList extends PureComponent {
 		);
 	}
 
+	goToNetworkSettings = () => {
+		this.props.onClose(false);
+		this.props.navigation.navigate('NetworkSettings');
+	};
+
 	render = () => (
 		<SafeAreaView style={styles.wrapper} testID={'networks-list'}>
 			<View style={styles.titleWrapper}>
 				<Text testID={'networks-list-title'} style={styles.title} onPress={this.closeSideBar}>
 					{strings('networks.title')}
 				</Text>
+				<Ionicons onPress={this.closeModal} name={'ios-close'} size={30} style={styles.closeIcon} />
 			</View>
 			<ScrollView style={styles.networksWrapper} testID={'other-networks-scroll'}>
 				{this.renderMainnet()}
@@ -278,9 +291,14 @@ export class NetworkList extends PureComponent {
 				{this.renderRpcNetworks()}
 			</ScrollView>
 			<View style={styles.footer}>
-				<TouchableOpacity style={styles.footerButton} onPress={this.closeModal}>
-					<Text style={styles.closeButton}>{strings('networks.close')}</Text>
-				</TouchableOpacity>
+				<StyledButton
+					type="confirm"
+					onPress={this.goToNetworkSettings}
+					containerStyle={styles.footerButton}
+					testID={'add-network-button'}
+				>
+					{strings('app_settings.add_network_title')}
+				</StyledButton>
 			</View>
 		</SafeAreaView>
 	);
