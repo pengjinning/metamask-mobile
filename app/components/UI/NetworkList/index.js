@@ -7,16 +7,18 @@ import { colors, fontStyles } from '../../../styles/common';
 import { strings } from '../../../../locales/i18n';
 import Networks, { getAllNetworks, isSafeChainId } from '../../../util/networks';
 import { connect } from 'react-redux';
+import AssetIcon from '../AssetIcon';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AnalyticsV2 from '../../../util/analyticsV2';
 import StyledButton from '../StyledButton';
+import getImage from '../../../util/getImage';
 import { MAINNET, RPC } from '../../../constants/network';
 
 const styles = StyleSheet.create({
 	wrapper: {
 		backgroundColor: colors.white,
 		borderRadius: 10,
-		minHeight: 450,
+		minHeight: 500,
 	},
 	titleWrapper: {
 		borderBottomWidth: StyleSheet.hairlineWidth,
@@ -33,19 +35,6 @@ const styles = StyleSheet.create({
 	title: {
 		textAlign: 'center',
 		fontSize: 18,
-		marginVertical: 12,
-		marginHorizontal: 20,
-		color: colors.fontPrimary,
-		...fontStyles.bold,
-	},
-	otherNetworksHeader: {
-		marginTop: 0,
-		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderColor: colors.grey100,
-	},
-	otherNetworksText: {
-		textAlign: 'left',
-		fontSize: 13,
 		marginVertical: 12,
 		marginHorizontal: 20,
 		color: colors.fontPrimary,
@@ -89,10 +78,15 @@ const styles = StyleSheet.create({
 		marginHorizontal: 20,
 	},
 	networkIcon: {
-		width: 15,
-		height: 15,
-		borderRadius: 100,
-		marginTop: 3,
+		width: 20,
+		height: 20,
+		borderRadius: 10,
+	},
+	text: {
+		textAlign: 'center',
+		color: colors.white100,
+		fontSize: 10,
+		marginTop: 4,
 	},
 	networkWrapper: {
 		flex: 0,
@@ -106,11 +100,6 @@ const styles = StyleSheet.create({
 	mainnetSelected: {
 		marginLeft: -30,
 		marginTop: 3,
-	},
-	otherNetworkIcon: {
-		backgroundColor: colors.transparent,
-		borderColor: colors.grey100,
-		borderWidth: 2,
 	},
 });
 
@@ -203,14 +192,19 @@ export class NetworkList extends PureComponent {
 		this.props.onClose(false);
 	};
 
-	networkElement = (selected, onPress, name, color, i, network) => (
+	networkElement = (selected, onPress, name, image, i, network, isCustomRpc) => (
 		<TouchableOpacity
 			style={styles.network}
 			key={`network-${i}`}
 			onPress={() => onPress(network)} // eslint-disable-line
 		>
 			<View style={styles.selected}>{selected}</View>
-			<View style={[styles.networkIcon, color ? { backgroundColor: color } : styles.otherNetworkIcon]} />
+			{isCustomRpc && <AssetIcon logo={image} customStyle={styles.networkIcon} />}
+			{!isCustomRpc && (
+				<View style={[styles.networkIcon, { backgroundColor: image }]}>
+					<Text style={styles.text}>{name[0]}</Text>
+				</View>
+			)}
 			<View style={styles.networkInfo}>
 				<Text numberOfLines={1} style={styles.networkLabel}>
 					{name}
@@ -221,23 +215,27 @@ export class NetworkList extends PureComponent {
 
 	renderOtherNetworks = () => {
 		const { provider } = this.props;
+
 		return this.getOtherNetworks().map((network, i) => {
 			const { color, name } = Networks[network];
+			const isCustomRpc = false;
 			const selected =
 				provider.type === network ? <Icon name="check" size={20} color={colors.fontSecondary} /> : null;
-			return this.networkElement(selected, this.onNetworkChange, name, color, i, network);
+			return this.networkElement(selected, this.onNetworkChange, name, color, i, network, isCustomRpc);
 		});
 	};
 
 	renderRpcNetworks = () => {
 		const { frequentRpcList, provider } = this.props;
-		return frequentRpcList.map(({ nickname, rpcUrl }, i) => {
-			const { color, name } = { name: nickname || rpcUrl, color: null };
+		return frequentRpcList.map(({ nickname, rpcUrl, chainId }, i) => {
+			const { name } = { name: nickname || rpcUrl, chainId, color: null };
+			const image = getImage(chainId);
+			const isCustomRpc = true;
 			const selected =
 				provider.rpcTarget === rpcUrl && provider.type === RPC ? (
 					<Icon name="check" size={20} color={colors.fontSecondary} />
 				) : null;
-			return this.networkElement(selected, this.onSetRpcTarget, name, color, i, rpcUrl);
+			return this.networkElement(selected, this.onSetRpcTarget, name, image, i, rpcUrl, isCustomRpc);
 		});
 	};
 
@@ -245,7 +243,7 @@ export class NetworkList extends PureComponent {
 		const { provider } = this.props;
 		const isMainnet =
 			provider.type === MAINNET ? <Icon name="check" size={15} color={colors.fontSecondary} /> : null;
-		const { color: mainnetColor, name: mainnetName } = Networks.mainnet;
+		const { name: mainnetName } = Networks.mainnet;
 
 		return (
 			<View style={styles.mainnetHeader}>
@@ -257,7 +255,7 @@ export class NetworkList extends PureComponent {
 				>
 					<View style={styles.networkWrapper}>
 						<View style={[styles.selected, styles.mainnetSelected]}>{isMainnet}</View>
-						<View style={[styles.networkIcon, { backgroundColor: mainnetColor }]} />
+						<AssetIcon logo={'eth.svg'} customStyle={styles.networkIcon} />
 						<View style={styles.networkInfo}>
 							<Text style={styles.networkLabel}>{mainnetName}</Text>
 						</View>
@@ -282,13 +280,8 @@ export class NetworkList extends PureComponent {
 			</View>
 			<ScrollView style={styles.networksWrapper} testID={'other-networks-scroll'}>
 				{this.renderMainnet()}
-				<View style={styles.otherNetworksHeader}>
-					<Text style={styles.otherNetworksText} testID={'other-network-name'}>
-						{strings('networks.other_networks')}
-					</Text>
-				</View>
-				{this.renderOtherNetworks()}
 				{this.renderRpcNetworks()}
+				{this.renderOtherNetworks()}
 			</ScrollView>
 			<View style={styles.footer}>
 				<StyledButton
